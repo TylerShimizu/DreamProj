@@ -1,0 +1,54 @@
+{% extends 'layout.html' %}
+
+{% block content%}
+
+<div class="hero-background">
+  <div class="container">
+    <!-- Hero Section -->
+    <div class="hero-section text-center py-5">
+      <header class="mb-4">
+        <h1 class="text-dark">Cameron Institute Survey Creation Tool</h1>
+        <p class="text-dark">Collect metrics, determine important success factors</p>
+      </header>
+
+      <!-- Search Bar -->
+      <form class="search-bar mb-4" action="/questions" method="GET">
+        <div class="input-group mb-3 mx-auto" style="max-width: 500px;">
+          <input type="text" class="form-control searchBar" name="searchQuery" id="search-bar"
+          list="searchRes" placeholder="Search surveys..." aria-label="Search surveys" autocomplete="off">
+          <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+        <ul class="dropdown-menu" id="searchRes" style="max-width: 700px;"></ul>
+      </form>
+
+      <!-- Get Started Button -->
+      <a href="/questions" class="btn btn-warning get-started-btn">Get Started</a>
+    </div>
+  </div>
+</div>
+
+<script src="../static/js/layout.js" defer></script>
+<script>
+  localStorage.clear()
+
+  // var QuestionData;
+
+  // fetch('/getData', {
+  //       method: "POST",
+  //       cache: "no-cache",
+  //       headers: new Headers({
+  //           "content-type": "application/json"
+  //       })
+  //   })
+  //   .then(response => response.json())
+  //   .then(data => {
+  //       QuestionData = data;
+  //       const searchBar = document.querySelector(".searchBar")
+  //       searchBar.addEventListener("input", e => {
+  //         const value = e.target.value.toLowerCase()
+  //         console.log(value)
+  // })
+  //   });
+</script>
+
+{% endblock content%}
