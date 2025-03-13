@@ -131,6 +131,13 @@ def showQuestions():
 
     return render_template('itemView.html', levels=LEVELS, categoryMap=CATEGORY_MAP, questions=questions)
 
+@app.route('/cart', methods = ["GET", 'POST'])
+def view_cart():
+    if 'user' in session:
+        return render_template('cartView.html')
+    else:
+        return redirect('/login')
+
 ## JS Call Routes ##
 
 @app.route('/getData', methods=["POST"])
