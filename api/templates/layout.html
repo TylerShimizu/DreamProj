@@ -104,9 +104,9 @@
               </li>
           </ul>
         </div>
-        {% if session["icon"] %}
+        {% if session["user"] %}
         <a class role="button" href="/logout">
-        <img src="{{ session['icon'] }}" alt="User Profile Picture" class="rounded-circle img-thumbnail" style="width: 50px; height: 50px;">
+        <img src="{{ session['user']['picture'] }}" alt="User Profile Picture" class="rounded-circle img-thumbnail" style="width: 50px; height: 50px;">
         </a>
         <!--<a class="d-flex btn btn-danger" role="button" href="/logout">Logout</a>-->
         {% else %}

@@ -1,0 +1,285 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="hstack align-items-stretch">
+        <!-- Filter Button -->
+        <button class="btn btn-light btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasExample" aria-controls="offcanvasExample" onclick="loadChecks()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
+                <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
+            </svg>
+            Filter
+        </button>
+        
+        <!-- Search Bar -->
+        <div class="ms-auto">
+            <div class="input-group h-100">
+                <input type="text" class="form-control searchBar h-100" placeholder="Search surveys..." aria-label="Search surveys" value="">
+                <button class="btn btn-primary h-100" type="submit">Search</button>
+            </div>
+        </div>
+    </div>
+    <hr>
+    <div class="row row-cols-2 row-cols-md-4 g-4" id="search-results">
+        {% for question in questions %}
+        <div class="col">
+            <div class="card h-100 border-dark mb-3">
+                <div class="card-header bg-primary-subtle">{{ question['Category'] }} - {{ question['Sub-Category'] }}</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ question['Item Stem'] }}</h5>
+                </div>
+                <div class="card-footer bg-warning-subtle">
+                    <small class="text-muted">{{ question['Levels'] }}</small>
+                    <a href="#" class="btn btn-warning stretched-link float-end" data-bs-toggle="modal" data-bs-target="#Modal-{{ question['id'] }}">More Info</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal HTML -->
+        <div class="modal fade" id="Modal-{{ question['id'] }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Add question to survey?</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                <h5>Question: <br> {{ question['Item Stem'] }}</h5>
+                <br>
+                <p class="text-secondary">Anchor:
+                <ul>
+                    {% for item in question['Anchors'].split(";") %}
+                    <li class="text-secondary">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+                </p>
+                </div>
+                <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" name="addCart-{{question['id']}}" data-bs-dismiss="modal" onclick="add_to_cart('{{ question['id'] }}')" value="{{ question['id'] }}">Add to Cart</button>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        {% endfor %}
+    </div>
+</div>
+
+<!--Filter Canvas HTML-->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasExample" aria-labelledby="offcanvasExampleLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="offcanvasExampleLabel">Filtering Options</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+    <form method="POST">
+      <div>
+        <h3 class="text-decoration-underline text-dark">
+            Categories
+        </h3>
+      </div>
+
+      {% for category in categoryMap.keys() %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="{{ category }}" id="{{ category }}" name="category">
+        <label class="form-check-label" for="{{ category }}">
+          {{ category }}
+        </label>
+            {% for sub in categoryMap[category] %}
+            <div class="form-check {{ category }}" style="display: none;">
+                <input class="form-check-input {{ category }}-form-check" type="checkbox" value="{{ category }}->{{ sub }}" id="{{ category }}->{{ sub }}" name="sub_category">
+                <label class="form-check-label" for="{{ category }}->{{ sub }}">
+                    {{ sub }}
+                </label>
+            </div>
+            {% endfor %}
+      </div>
+      {% endfor %}
+
+      <div>
+        <br>
+        <h3 class="text-decoration-underline text-dark">
+            Levels
+        </h3>
+      </div>
+      {% for level in levels.keys() %}
+      {% if level == "Levels" %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="{{ level }}" id="{{ level }}" name="Level">
+        <label class="form-check-label" for="flexCheckDefault">
+          {{ level }}
+        </label>
+        {% else %}
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="{{ level }}" id="{{ level }}" name="Level">
+            <label class="form-check-label" for="flexCheckDefault">
+              {{ level }}
+            </label>
+        {% endif %}
+        {% if levels[level] | length > 1 %}
+            {% for lev in levels[level] %}
+            <div class="form-check {{ level }}" style="display: none;">
+                <input class="form-check-input {{ level }}-form-check" type="checkbox" value="{{ lev }}" id="{{ lev }}" name="level">
+                <label class="form-check-label" for="{{ lev }}">
+                    {{ lev }}
+                </label>
+            </div>
+            {% endfor %}
+        {% endif %}
+      </div>
+      {% endfor %}
+      <div>
+        <br>
+        <h3>Order By</h3>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="alpha" value="alpha" name="orderBy" onchange="toggleSwitch('alpha', 'lev')">
+            <label class="form-check-label" for="alpha">Alphabetically</label>
+        </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="lev" value="lev" name="orderBy" onchange="toggleSwitch('lev', 'alpha')">
+            <label class="form-check-label" for="lev">By Level</label>
+        </div>
+      </div>
+      <br>
+      <div class="d-grid gap-2 d-md-block">
+        <button type="submit" class="btn btn-primary">Submit</button>
+        <div class="vr"></div>
+        <button type="submit" class="btn btn-secondary" onclick="clearStorage()">Clear Filter</button>
+      </div>
+    </form>
+    </div>
+</div>
+
+<script>
+    function add_to_cart(Id) {
+        var pressed = document.getElementsByName("addCart-" + Id)
+        var entry = {
+            question_id: pressed[0].value
+        }
+        console.log(entry)
+
+        fetch('/add_to_cart', {
+            method: "POST",
+            body: JSON.stringify(entry),
+            cache: "no-cache",
+            headers: new Headers({
+                "content-type": "application/json"
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            alert(data.message);
+            const cartCountElement = document.getElementById('cart-count');
+            cartCountElement.textContent = data.cart_count;
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+
+    function clearStorage() {
+        localStorage.clear()
+        let checkboxes = document.getElementsByClassName('form-check-input');
+        for (i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = false
+        }
+    }
+
+    function saveCheckboxStates() {
+        let checkboxes = document.getElementsByClassName('form-check-input');
+        for (i = 0; i < checkboxes.length; i++) {
+            localStorage.setItem(checkboxes[i].id, checkboxes[i].checked)
+        }
+    }
+
+    function loadChecks() {
+        let checkboxes = document.getElementsByClassName('form-check-input');
+        for (let i=0; i < checkboxes.length; i++){
+            let checked = localStorage.getItem(checkboxes[i].id) === 'true';
+            checkboxes[i].checked = checked;
+            if (checked & checkboxes[i].name === 'category'){
+                let sub = document.getElementsByClassName(checkboxes[i].value)
+                for (let j=0; j<sub.length; j++) {
+                    sub[j].style.display = 'block';
+                };
+            }
+            else if (checked & checkboxes[i].name === 'Level') {
+                let sub = document.getElementsByClassName(checkboxes[i].value)
+                for (let j=0; j<sub.length; j++) {
+                    sub[j].style.display = 'block';
+                };
+            }
+        };
+    }
+
+    function toggleSwitch(checkedId, otherId) {
+        const checkedSwitch = document.getElementById(checkedId);
+        const otherSwitch = document.getElementById(otherId);
+        
+        if (checkedSwitch.checked) {
+            otherSwitch.checked = false;
+        }
+        saveCheckboxStates();
+    }
+
+    let boxes = document.getElementsByName('category')
+    let allCheckboxes = document.getElementsByClassName('form-check-input')
+    let cart = document.getElementsByName('addCart')
+    let level_select = document.getElementsByName('Level')
+    console.log(level_select)
+
+    for (let i = 0; i < level_select.length; i++) {
+        level_select[i].addEventListener("change", () => {
+            let sub = document.getElementsByClassName(level_select[i].value)
+            if (level_select[i].checked) {
+                for (let j = 0; j < sub.length; j++) {
+                    sub[j].style.display = 'block';
+                    sub[j].children[0].checked = true;
+                    console.log(sub[j].children[0])
+                };
+            }
+            else {
+                for (let j = 0; j < sub.length; j++) {
+                    sub[j].style.display = 'none';
+                    let checkbox = document.getElementsByClassName(level_select[i].value + '-form-check')
+                    for (let k = 0; k < checkbox.length; k ++) {
+                        checkbox[k].checked = false
+                    }
+                }
+            }
+            saveCheckboxStates();
+        })
+    }
+    for (let i = 0; i < boxes.length; i++){
+        boxes[i].addEventListener("change", () => {
+            let sub = document.getElementsByClassName(boxes[i].value)
+            if (boxes[i].checked) {
+                for (let j = 0; j < sub.length; j++) {
+                    sub[j].style.display = 'block';
+                    sub[j].checked = true
+                };
+            }
+            else {
+                for (let j = 0; j < sub.length; j++) {
+                    sub[j].style.display = 'none';
+                    let checkbox = document.getElementsByClassName(boxes[i].value + '-form-check')
+                    for (let k = 0; k < checkbox.length; k ++) {
+                        checkbox[k].checked = false
+                    }
+                }
+            }
+            saveCheckboxStates();
+        })
+    }
+
+    for (let i = 0; i < allCheckboxes.length; i++) {
+        allCheckboxes[i].addEventListener('change', () => {
+            saveCheckboxStates();
+        })
+    }
+</script>
+
+{% endblock content %}
