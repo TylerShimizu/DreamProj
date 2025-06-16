@@ -3,10 +3,11 @@ import json
 import re
 import pandas as pd
 from flask import Flask, render_template, redirect, jsonify, request, url_for, session
-from api.models import db
+from api.models import db, User, CartItem, Question
 import api.googleSheet as google_api
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
+from google.oauth2.credentials import Credentials
 
 load_dotenv()
 
@@ -27,7 +28,13 @@ google = oauth.register(
     api_base_url="https://www.googleapis.com/oauth2/v1/",
     server_metadata_url=os.getenv("GOOGLE_DISCOVERY_URL"),
     userinfo_endpoint="https://www.googleapis.com/oauth2/v2/userinfo",
-    client_kwargs={"scope": "openid email profile"},
+    client_kwargs={
+        'scope': (
+            'openid email profile '
+            'https://www.googleapis.com/auth/documents '
+            'https://www.googleapis.com/auth/drive.file'
+        )
+    }
 )
 
 ##Possibly chnage this later to implement actual database
@@ -67,6 +74,20 @@ def callback():
     token = google.authorize_access_token()
     user_info = google.get("userinfo").json()
     session["user"] = user_info
+    session["token"] = token
+
+    # Check if the user already exists in the database
+    user = User.query.filter_by(email=user_info["email"]).first()
+    if not user:
+        # Create a new user if not exists
+        user = User(email=user_info["email"], name=user_info["name"])
+        db.session.add(user)
+        db.session.commit()
+        session['cart'] = []
+    else:
+        cart_items = [str(item.item_id) for item in user.cart_items]
+        session["cart"] = cart_items
+
     print(user_info)
     return redirect("/")
 
@@ -143,3 +164,98 @@ def view_cart():
 @app.route('/getData', methods=["POST"])
 def getData():
     return jsonify(df.to_dict(orient='records'))
+
+@app.route('/getCartSize', methods=["POST"])
+def cartSize():
+    user = None
+    if "user" in session:
+        user = User.query.filter_by(email=session["user"]["email"]).first()
+    if user:
+        return jsonify({'cart_count': len(user.cart_items)})
+    return jsonify({'cart_count': 0})
+
+@app.route('/add_to_cart', methods=['POST'])
+def add_to_cart():
+    questionId = request.get_json()['question_id']
+    message = ''
+    if 'user' in session:
+        user = User.query.filter_by(email=session["user"]['email']).first()
+        user_id = user.id
+
+        inCart = CartItem.query.filter_by(user_id=user_id, item_id=int(questionId)).first()
+
+        if not inCart:
+            new_cart_item = CartItem(user_id=user_id, item_id=int(questionId))
+            db.session.add(new_cart_item)
+            db.session.commit()
+            message = 'Question added to cart successfully!'
+            if questionId not in session['cart']:
+                session['cart'].append(questionId)
+        else:
+            message = 'Already in cart!'
+
+    return jsonify({
+        'message': message,
+        'cart_count': len(user.cart_items)
+    })
+
+@app.route('/removeItem', methods=['POST'])
+def removeItem():
+    itemId = request.get_json()['id']
+    user = User.query.filter_by(email=session["user"]['email']).first()
+
+    if user:
+
+        cart_item = CartItem.query.filter_by(user_id=user.id, item_id=itemId).first()
+
+        if cart_item:
+            db.session.delete(cart_item)
+            db.session.commit()
+            session['cart'].remove(str(itemId))
+
+    return jsonify({'cart-count': len(user.cart_items)})
+
+@app.route('/cartView', methods = ["POST"])
+def cartView():
+    if 'user' in session:
+        user = User.query.filter_by(email=session["user"]["email"]).first()
+        user_id = user.id
+
+        items = []
+        cart_items = CartItem.query.filter_by(user_id=user_id).all()
+        for item in cart_items:
+            question = df[df['id'] == item.item_id].iloc[0]  # Retrieve the question row from the DataFrame
+            new_item = {
+                'title': question['Item Stem'],
+                'description': question['Anchors'].split(';'),
+                'path': question['Category'] + " - " + question['Sub-Category'],
+                'id': int(question['id'])
+            }
+            items.append(new_item)
+        return jsonify(items)
+    
+@app.route('/exporting', methods=["POST"])
+def exporting():
+    if "token" not in session:
+        return redirect("/login")
+
+    dest = request.form.get('dest')
+    data = json.loads(request.form.get('data'))
+    creds = Credentials(
+        token=session["token"]["access_token"],
+        refresh_token=session["token"].get("refresh_token"),
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=os.getenv("GOOGLE_CLIENT_ID"),
+        client_secret=os.getenv("GOOGLE_CLIENT_SECRET")
+    )
+
+    questions = pd.DataFrame()
+
+    for item in data:
+        questions = pd.concat([questions, df[(df["id"] == int(item))]])
+    if dest == 'forms':
+        form = google_api.update_form(questions)
+        return redirect('https://docs.google.com/forms/d/' + form['formId'])
+    else:
+        docId = google_api.create_doc(questions, creds)
+        return redirect('https://docs.google.com/document/d/' + docId)

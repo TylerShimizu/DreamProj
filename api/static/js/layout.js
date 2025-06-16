@@ -12,6 +12,7 @@ function getCartCount() {
     .then(data => {
         const cartCountElement = document.getElementById('cart-count');
         cartCountElement.textContent = String(data.cart_count);
+        console.log(data.cart_count)
     })
     .catch((error) => {
         console.error('Error:', error);
