@@ -1,4 +1,5 @@
 import os
+import json
 
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -12,8 +13,7 @@ from collections import defaultdict
 from dotenv import load_dotenv
 load_dotenv()
 
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly", "https://www.googleapis.com/auth/forms.body", "https://www.googleapis.com/auth/documents"]
-spreadsheet_id = "1nOYY4SqnoJ3il2QJ7vMOngiIXLBKX2pgskLNoDUdPC4"
+spreadsheet_id = os.getenv("GOOGLE_SPEADSHEET")
 range_name = ['Career Development!A2:Z', 'Community Engagement!A1:Z', 'Student-Athlete Performance!A1:Z', 'Personal Development, Misc.!A1:Z']
 DISCOVERY_DOC = "https://forms.googleapis.com/$discovery/rest?version=v1"
 
@@ -91,7 +91,7 @@ def main():
         # Update last_updated timestamp
                     q.last_updated = datetime.now()
                 else:
-                    temp[7] = temp[7].split(";")
+                    #temp[7] = temp[7].split(";")
                     new = Question( 
                         level = temp[0], 
                         category = category, 
@@ -101,7 +101,6 @@ def main():
                         method = temp[6]
                     )
                     db.session.add(new)
-                    print("changed entry question #" + str(id))
                 
 
                 db.session.commit()
@@ -127,22 +126,39 @@ def main():
     except HttpError as err:
         print(err)
 
-def create_doc(questions, creds):
+def create_doc(questions, creds, docId):
     try:
         service = build("docs", "v1", credentials=creds)
-        title = {
-            "title": "Sample Survey"
-        }
-        doc = service.documents().create(body=title).execute()
-        document_id = doc.get('documentId')
+        # If no docId, create a new document
+        if docId is None:
+            title = {
+                "title": "Sample Survey"
+            }
+            doc = service.documents().create(body=title).execute()
+            document_id = doc.get("documentId")
+        else:
+            document_id = docId
+
+            # Get the current document to find its length (needed for clearing)
+            doc = service.documents().get(documentId=document_id).execute()
+            content_length = doc.get("body", {}).get("content", [])[-1].get("endIndex", 1)
+
+            # Clear existing content (from index 1 to end)
+            clear_request = [{
+                "deleteContentRange": {
+                    "range": {
+                        "startIndex": 1,
+                        "endIndex": content_length - 1
+                    }
+                }
+            }]
+            service.documents().batchUpdate(documentId=document_id, body={"requests": clear_request}).execute()
 
         requests = []
         current_index = 1
 
         for _, question in questions.iterrows():
             # Insert the question text
-            print(question)
-            print(type(question))
             if question is not None:
                 requests.append({
                     "insertText": {

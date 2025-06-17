@@ -80,7 +80,7 @@ def callback():
     user = User.query.filter_by(email=user_info["email"]).first()
     if not user:
         # Create a new user if not exists
-        user = User(email=user_info["email"], name=user_info["name"])
+        user = User(email=user_info["email"], name=user_info["name"], doc=None, form=None)
         db.session.add(user)
         db.session.commit()
         session['cart'] = []
@@ -237,7 +237,7 @@ def cartView():
     
 @app.route('/exporting', methods=["POST"])
 def exporting():
-    if "token" not in session:
+    if "token" not in session or "user" not in session:
         return redirect("/login")
 
     dest = request.form.get('dest')
@@ -250,15 +250,27 @@ def exporting():
         client_secret=os.getenv("GOOGLE_CLIENT_SECRET")
     )
 
+    user = User.query.filter_by(email=session["user"]['email']).first()
+
     questions = pd.DataFrame()
 
     for item in data:
         questions = pd.concat([questions, df[(df["id"] == int(item))]])
     if dest == 'forms':
-        form = google_api.update_form(questions)
+        if user.form:
+            form = google_api.update_form(questions, creds, user.form)
+        else:
+            form = google_api.update_form(questions, creds, None)
+            user.form = form["formId"]
+            db.session.commit()
         return redirect('https://docs.google.com/forms/d/' + form['formId'])
     else:
-        docId = google_api.create_doc(questions, creds)
+        if user.doc:
+            docId = google_api.create_doc(questions, creds, user.doc)
+        else:
+            docId = google_api.create_doc(questions, creds, None)
+            user.doc = docId
+            db.session.commit()
         return redirect('https://docs.google.com/document/d/' + docId)
     
 @app.route('/getSummary', methods=["POST"])
@@ -274,6 +286,5 @@ def getSummary():
 
     # Create a pandas Series from the list and get the counts of unique values
     levels_counts = pd.Series(levels_in_cart).value_counts().to_dict()
-    print(levels_counts)
 
     return jsonify(levels_counts)
