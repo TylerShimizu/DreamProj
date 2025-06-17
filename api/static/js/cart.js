@@ -49,7 +49,8 @@ function populateCart(data) {
                                 <div class="card-body p-2">
                                     <h5 class="card-title mb-1">${item.title}</h5>
                                     <p class="card-text d-none" data-user-card-text></p>
-                                    <p class="card-text"><small class="text-body-secondary">${item.path}</small></p>
+                                    <p class="card-text mb-0"><small class="text-body-secondary">${item.path}</small></p>
+                                    <p class="card-text mb-0"><small class="text-body-secondary">${item.level}</small></p>
                                 </div>
                             </div>
                         </div>
@@ -216,6 +217,7 @@ function deselect_all() {
         }
     }
     document.querySelector('[export-data]').textContent = `Items Selected: ${checkedItems.size}`
+    checked_count = 0
 }
 
 // Function to dynamically remove item from cart

@@ -229,7 +229,8 @@ def cartView():
                 'title': question['Item Stem'],
                 'description': question['Anchors'].split(';'),
                 'path': question['Category'] + " - " + question['Sub-Category'],
-                'id': int(question['id'])
+                'id': int(question['id']),
+                "level": question["Levels"]
             }
             items.append(new_item)
         return jsonify(items)
@@ -259,3 +260,20 @@ def exporting():
     else:
         docId = google_api.create_doc(questions, creds)
         return redirect('https://docs.google.com/document/d/' + docId)
+    
+@app.route('/getSummary', methods=["POST"])
+def getSummary():
+    user = User.query.filter_by(email=session["user"]["email"]).first()
+    # Initialize a list to store the levels of items in the cart
+    levels_in_cart = []
+
+    cart_items = CartItem.query.filter_by(user_id=user.id).all()
+    for item in cart_items:
+        question = df[df['id'] == item.item_id].iloc[0]  # Retrieve the question row from the DataFrame
+        levels_in_cart.append(question['Levels'])
+
+    # Create a pandas Series from the list and get the counts of unique values
+    levels_counts = pd.Series(levels_in_cart).value_counts().to_dict()
+    print(levels_counts)
+
+    return jsonify(levels_counts)
