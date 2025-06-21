@@ -9,7 +9,9 @@ from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 from google.oauth2.credentials import Credentials
 
-load_dotenv()
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+dotenv_path = os.path.join(parent_dir, '.env')
+load_dotenv(dotenv_path=dotenv_path, override=True)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
@@ -38,7 +40,7 @@ google = oauth.register(
 )
 
 ##Possibly chnage this later to implement actual database
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///project.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///project.db")
 db.init_app(app)
 with app.app_context():
     db.create_all()
@@ -107,6 +109,8 @@ def custom_sort(val):
 def showQuestions():
     Qs = pd.DataFrame()
     order = None
+    search_term = request.args.get('searchQuery', '').lower()
+    print(search_term)
 
     if request.method == "POST":
         search_query = request.form.get('searchQuery', '', str).lower()
@@ -149,6 +153,10 @@ def showQuestions():
             else:
                 Qs = Qs.sort_values(by=['Sub-Category'])
         questions = Qs.to_dict(orient='records')
+    
+    if search_term:
+        Qs = df[df["Item Stem"].str.lower().str.contains(search_term, regex=False)]
+        questions = Qs.to_dict(orient='records')
 
     return render_template('itemView.html', levels=LEVELS, categoryMap=CATEGORY_MAP, questions=questions)
 
@@ -189,8 +197,8 @@ def add_to_cart():
             db.session.add(new_cart_item)
             db.session.commit()
             message = 'Question added to cart successfully!'
-            if questionId not in session['cart']:
-                session['cart'].append(questionId)
+            # if questionId not in session['cart']:
+            #     session['cart'].append(questionId)
         else:
             message = 'Already in cart!'
 
@@ -211,7 +219,7 @@ def removeItem():
         if cart_item:
             db.session.delete(cart_item)
             db.session.commit()
-            session['cart'].remove(str(itemId))
+            #session['cart'].remove(str(itemId))
 
     return jsonify({'cart-count': len(user.cart_items)})
 

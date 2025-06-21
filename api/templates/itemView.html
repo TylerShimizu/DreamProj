@@ -3,6 +3,7 @@
 {% block content %}
 
 <div class="container mt-5">
+    <div id="alert-container" class="position-fixed top-0 start-50 translate-middle-x w-100 px-3" style="z-index: 9999; max-width: 600px; margin-top: 10px;"></div>
     <div class="hstack align-items-stretch">
         <!-- Filter Button -->
         <button class="btn btn-light btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasExample" aria-controls="offcanvasExample" onclick="loadChecks()">
@@ -13,11 +14,15 @@
         </button>
         
         <!-- Search Bar -->
-        <div class="ms-auto">
-            <div class="input-group h-100">
-                <input type="text" class="form-control searchBar h-100" placeholder="Search surveys..." aria-label="Search surveys" value="">
-                <button class="btn btn-primary h-100" type="submit">Search</button>
-            </div>
+        <div class="ms-auto position-relative">
+            <form class="search-bar" action="/questions" method="GET">
+                <div class="input-group">
+                <input type="text" class="form-control searchBar expandable-search" name="searchQuery" id="search-bar"
+                list="searchRes" placeholder="Search surveys..." aria-label="Search surveys" autocomplete="off" value="">
+                <button class="btn btn-primary" type="submit">Search</button>
+                </div>
+                <ul class="dropdown-menu w-100 position-absolute start-0 mt-1" id="searchRes" style="max-width: 400px;"></ul>
+            </form>
         </div>
     </div>
     <hr>
@@ -158,7 +163,6 @@
         var entry = {
             question_id: pressed[0].value
         }
-        console.log(entry)
 
         fetch('/add_to_cart', {
             method: "POST",
@@ -170,14 +174,34 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Success:', data);
-            alert(data.message);
+            const type = data.message === 'Already in cart!' ? 'danger' : 'success';
+            showBootstrapAlert(data.message, type);
             const cartCountElement = document.getElementById('cart-count');
             cartCountElement.textContent = data.cart_count;
         })
         .catch((error) => {
             console.error('Error:', error);
         });
+    }
+
+    function showBootstrapAlert(message, type = "success") {
+        const alertContainer = document.getElementById("alert-container");
+
+        const alert = document.createElement("div");
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.setAttribute("role", "alert");
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        alertContainer.appendChild(alert);
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+            bsAlert.close();
+        }, 3000);
     }
 
     function clearStorage() {
@@ -229,7 +253,7 @@
     let allCheckboxes = document.getElementsByClassName('form-check-input')
     let cart = document.getElementsByName('addCart')
     let level_select = document.getElementsByName('Level')
-    console.log(level_select)
+
 
     for (let i = 0; i < level_select.length; i++) {
         level_select[i].addEventListener("change", () => {

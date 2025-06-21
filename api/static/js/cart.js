@@ -272,8 +272,6 @@ function exporting(destination) {
         }
     });
 
-    console.log(data)
-
     const fields = {
         dest: destination,
         data: JSON.stringify(data)
