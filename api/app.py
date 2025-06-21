@@ -201,6 +201,8 @@ def add_to_cart():
             #     session['cart'].append(questionId)
         else:
             message = 'Already in cart!'
+    else:
+        return redirect("/login")
 
     return jsonify({
         'message': message,
@@ -220,7 +222,8 @@ def removeItem():
             db.session.delete(cart_item)
             db.session.commit()
             #session['cart'].remove(str(itemId))
-
+    else:
+        return redirect("/login")
     return jsonify({'cart-count': len(user.cart_items)})
 
 @app.route('/cartView', methods = ["POST"])
@@ -242,6 +245,8 @@ def cartView():
             }
             items.append(new_item)
         return jsonify(items)
+    else:
+        return redirect("/login")
     
 @app.route('/exporting', methods=["POST"])
 def exporting():
@@ -259,6 +264,8 @@ def exporting():
     )
 
     user = User.query.filter_by(email=session["user"]['email']).first()
+    if not user:
+        return redirect("/login")
 
     questions = pd.DataFrame()
 
@@ -284,6 +291,8 @@ def exporting():
 @app.route('/getSummary', methods=["POST"])
 def getSummary():
     user = User.query.filter_by(email=session["user"]["email"]).first()
+    if not user:
+        return redirect("/login")
     # Initialize a list to store the levels of items in the cart
     levels_in_cart = []
 

@@ -61,7 +61,7 @@ function searchQueryList(questions) {
             // Add click handler to populate search bar when an item is clicked
             li.addEventListener("click", () => {
                 const stem = encodeURIComponent(option['Item Stem']);
-                window.location.href = `/questions?search=${option['Item Stem']}`;
+                window.location.href = `/questions?searchQuery=${option['Item Stem']}`;
             });
 
             searchResults.appendChild(li);

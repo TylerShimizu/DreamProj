@@ -1,7 +1,7 @@
 from api.app import app
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
 
 # # Importing flask module in the project is mandatory
 # # An object of Flask class is our WSGI application.
