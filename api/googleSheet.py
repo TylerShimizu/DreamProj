@@ -26,7 +26,7 @@ flow = Flow.from_client_config(
         "web": {
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
-            "redirect_uris": ["http://localhost:5000/callback", "https://dreamproj.onrender.com/callback"],
+            "redirect_uris": ["http://localhost:5000/callback", "https://dreamproj.onrender.com/callback", "https://dreamproj-7098.onrender.com/callback"],
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token"
         }
